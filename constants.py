@@ -208,3 +208,97 @@ def generate_distinct_colors(num_colors):
 
 # 生成 365 种颜色，加上白色作为第 0 个颜色
 PLACE365_RGB_COLORS = np.vstack([[255, 255, 255], generate_distinct_colors(NUM_CLASSES)]).astype(np.uint8)
+
+# 类别名
+PROMPT_SEPARATOR = "|"
+STAIR_CLASS_ID = 17  # MPCAT40中 楼梯的类别编号是 16 + 1
+CHAIR_CLASS_ID = 4  # MPCAT40中 椅子的类别编号是 3 + 1
+SOFA_CLASS_ID = 11  # MPCAT40中 沙发的类别编号是 10 + 1
+PLANT_CLASS_ID = 15  # MPCAT40中 植物的类别编号是 14 + 1
+BED_CLASS_ID = 12  # MPCAT40中 床的类别编号是 11 + 1
+TOILET_CLASS_ID = 19  # MPCAT40中 马桶的类别编号是 18 + 1
+TV_CLASS_ID = 23  # MPCAT40中 电视的类别编号是 22 + 1
+
+# 关键修改：调整列表项生成方式，确保缩进正确
+INDENT_L1 = " " * 4
+INDENT_L2 = " " * 8
+
+# 关键修改：动作
+STOP = 0
+MOVE_FORWARD = 1
+TURN_LEFT = 2
+TURN_RIGHT = 3
+LOOK_UP = 4
+LOOK_DOWN = 5
+
+STICKY_FRONTIER_DISTANCE_THRESHOLD = 0.3
+STICKY_FRONTIER_STEP_THRESHOLD = 20
+REPEATED_SELECTION_THRESHOLD = 20
+MULTI_FLOOR_ASK_STEP_THRESHOLD = 60
+FLOOR_EXP_STEP_THRESHOLD = 100
+
+# reference_captions = [[obj] for obj in reference_object_list]
+REFERENCE_ROOMS = [
+            "bathroom", "bedroom", "dining_room", "garage", "hall",
+            "kitchen", "laundry_room", "living_room", "office", "rec_room"
+        ]
+# 直接映射表
+DIRECT_MAPPING = {
+    # Bathroom 相关
+    "bathroom": "bathroom",
+    "shower": "bathroom",
+    "jacuzzi/indoor": "bathroom",
+
+    # Bedroom 相关
+    "bedroom": "bedroom",
+    "bedchamber": "bedroom",
+    "dorm_room": "bedroom",
+    "hotel_room": "bedroom",
+    "childs_room": "bedroom",
+
+    # Dining Room 相关
+    "dining_room": "dining_room",
+    "dining_hall": "dining_room",
+    "banquet_hall": "dining_room",
+    "restaurant": "dining_room",
+    "cafeteria": "dining_room",
+
+    # Garage 相关
+    "garage/indoor": "garage",
+    "garage/outdoor": "garage",
+    "parking_garage/indoor": "garage",
+    "parking_garage/outdoor": "garage",
+
+    # Hall 相关
+    "entrance_hall": "hall",
+    "lobby": "hall",
+    "corridor": "hall",
+    "mezzanine": "hall",
+
+    # Kitchen 相关
+    "kitchen": "kitchen",
+    "restaurant_kitchen": "kitchen",
+
+    # Laundry Room 相关
+    "laundry_room": "laundry_room",
+    "laundromat": "laundry_room",
+
+    # Living Room 相关
+    "living_room": "living_room",
+    "home_theater": "living_room",
+    "television_room": "living_room",
+
+    # Office 相关
+    "office": "office",
+    "office_cubicles": "office",
+    "conference_room": "office",
+    "home_office": "office",
+    "computer_room": "office",
+
+    # Rec Room 相关
+    "recreation_room": "rec_room",
+    "playroom": "rec_room",
+    "amusement_arcade": "rec_room",
+    "gymnasium/indoor": "rec_room",
+    "arcade": "rec_room",
+}

@@ -1,0 +1,27 @@
+[submodule "third_party/places365"]
+	path = third_party/places365
+	url = https://github.com/CSAILVision/places365.git
+[submodule "third_party/MobileSAM"]
+	path = third_party/MobileSAM
+	url = https://github.com/ChaoningZhang/MobileSAM.git
+[submodule "third_party/GroundingDINO"]
+	path = third_party/GroundingDINO
+	url = https://github.com/IDEA-Research/GroundingDINO.git
+[submodule "third_party/frontier_exploration"]
+	path = third_party/frontier_exploration
+	url = https://github.com/naokiyokoyama/frontier_exploration.git
+[submodule "third_party/depth_camera_filtering"]
+	path = third_party/depth_camera_filtering
+	url = https://github.com/naokiyokoyama/depth_camera_filtering.git
+[submodule "third_party/D-FINE"]
+	path = third_party/D-FINE
+	url = https://github.com/Peterande/D-FINE.git
+[submodule "third_party/recognize-anything"]
+	path = third_party/recognize-anything
+	url = https://github.com/xinyu1205/recognize-anything.git
+[submodule "third_party/habitat-lab"]
+	path = third_party/habitat-lab
+	url = https://github.com/facebookresearch/habitat-lab.git
+[submodule "third_party/vlfm"]
+	path = third_party/vlfm
+	url = https://github.com/bdaiinstitute/vlfm.git

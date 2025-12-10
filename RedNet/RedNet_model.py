@@ -3,7 +3,7 @@ from torch import nn
 import torch.nn.functional as F 
 import math
 import torch.utils.model_zoo as model_zoo
-import utils
+import RedNet.utils
 from torch.utils.checkpoint import checkpoint
 import os
 import torchvision
