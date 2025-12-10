@@ -1,31 +1,53 @@
 # 忽略 VSCode 配置文件
-/.vscode
+.vscode/
 
 # 忽略 History 文件
-/.history
+.history/
 
 # 忽略调试文件夹
-/debug
+debug/
 
 # 忽略数据文件夹
-/data/
+data/
 
 # 忽略 lockfiles 文件夹
-/lockfiles
+lockfiles/
 
 # 忽略输出文件夹
-/outputs
+outputs/
 
 # 忽略 Python 缓存
-/__pycache__/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
 
-# 忽略 预训练模型权重
-/pretrained_weights
+# 忽略预训练模型权重
+pretrained_weights/
 
-# 针对一些已知的二进制文件或临时文件（可选）
+# 针对一些已知的二进制文件或临时文件
 *.npy
 *.png
 *.jpg
 *.log
 *.gz
 *.pth
+*.tar
+*.zip
+
+# 忽略环境变量文件
+.env
+.env.local
+
+# 忽略 IDE 配置
+.idea/
+*.swp
+*.swo
+*~
+
+# 忽略 macOS 文件
+.DS_Store
+
+# 忽略 tmux 临时文件
+*.tmux
