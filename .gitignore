@@ -28,8 +28,8 @@ pretrained_weights/
 
 # 针对一些已知的二进制文件或临时文件
 *.npy
-*.png
-*.jpg
+/*.png          # 只忽略根目录的 png
+/*.jpg          # 只忽略根目录的 jpg
 *.log
 *.gz
 *.pth
