@@ -142,7 +142,7 @@ Download the required model weights and save them to the `pretrained_weights/` d
 | RAM++ | `ram_plus_swin_large_14m.pth` | [HuggingFace](https://huggingface.co/xinyu1205/recognize-anything-plus-model/blob/main/ram_plus_swin_large_14m.pth) |
 
 ### Qwen2.5-7B Weights
-Through [HuggingFace](https://huggingface.co/Qwen/Qwen2.5-7B-Instruct) or [ModelScope](https://modelscope.cn/models/Qwen/Qwen2.5-VL-7B-Instruct) download the checkpoints, and put them in `pretrained_weights/`
+Through [HuggingFace](https://huggingface.co/Qwen/Qwen2.5-7B-Instruct) or [ModelScope](https://modelscope.cn/models/Qwen/Qwen2.5-7B-Instruct) download the checkpoints, and put them in `pretrained_weights/`
 
 ### PointNav Weights
 
