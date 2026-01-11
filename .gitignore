@@ -10,6 +10,8 @@ debug/
 # 忽略数据文件夹
 data/
 
+/data
+
 # 忽略 lockfiles 文件夹
 lockfiles/
 
@@ -51,3 +53,5 @@ pretrained_weights/
 
 # 忽略 tmux 临时文件
 *.tmux
+
+!dummy_policy.pth
