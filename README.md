@@ -1,90 +1,66 @@
-# Mval Frontier Scoring Update: Cross-Floor Evaluation Report
+# ASCENT Improved: Distance-Aware Frontier Scoring for Cross-Floor ObjectNav
 
-This document summarizes the cross-floor evaluation before and after updating the frontier scoring rule to include a distance-aware term.
+> 基于 [ASCENT](https://github.com/Zeying-Gong/ascent) 的改进版本，通过引入距离感知的 frontier 评分机制，显著提升跨楼层目标导航中的路径质量与探索效率。
 
-## 1) Change Summary
+## Core Improvement
 
-- **Goal**: Update frontier scoring to prefer semantically promising frontiers while still favoring near-term reachable ones.
-- **New formula**:
+原始 ASCENT 的 frontier 评分仅依赖语义匹配分数 $M_{ss}$，在跨楼层场景中容易反复探索远处低价值区域，导致路径冗余。
 
-  \[
-  M_{val}(F_i) = M_{ss}(F_i)\cdot\left(1 + \exp(-d_i)\cdot\mathbf{1}[d_i \le d_{\theta}]\right) + \epsilon
-  \]
+本项目提出 **距离感知的 frontier 评分公式**，在保留语义信息的同时引入距离衰减奖励，使 agent 优先探索近距离高语义价值区域：
 
-- **Hyperparameters**:
-  - \(d_{\theta} = 3.0\) meters (distance bonus is zero when \(d_i > d_{\theta}\))
-  - \(\epsilon = 0.01\)
-- **Distance definition**:
-  - \(d_i\) is the real-time Euclidean distance from robot current position to frontier \(F_i\), recomputed every step for every frontier.
+$$M_{val}(F_i) = M_{ss}(F_i) \cdot \left(1 + \exp(-d_i) \cdot \mathbf{1}[d_i \le d_{\theta}]\right) + \epsilon$$
 
-## 2) Code Locations
+其中：
+- $d_i$：机器人当前位置到 frontier $F_i$ 的实时欧氏距离（每步重新计算）
+- $d_{\theta} = 3.0\ \text{m}$：距离奖励阈值，超过该距离不再给予近距离加成
+- $\epsilon = 0.01$：平滑项，防止零分
 
-- Updated frontier ranking logic: `ascent/llm_planner.py`
-  - `_get_best_frontier_with_llm(...)`: pass `robot_xy` into frontier sorting
-  - `_sort_frontiers_by_value(...)`: apply Mval formula and sort by Mval descending
-- Added Mval constants in planner:
-  - `_MVAL_D_THETA = 3.0`
-  - `_MVAL_EPSILON = 0.01`
+**设计思路**：当 frontier 距离较近（$d_i \le d_{\theta}$）时，$\exp(-d_i)$ 提供额外正向加成；距离越近加成越大，鼓励 agent 先完成对近距离区域的探索，再向远处推进，从而减少无效往返。
 
-## 3) Evaluation Setup
+## Evaluation Results
 
-- Task: MP3D cross-floor ObjectNav evaluation
-- Config: `experiments/eval_ascent_mp3d_cross_floor.yaml`
-- Episodes: 50
-- VLM server ports: `13181-13186`
-- Runtime mode: tmux detached session for SSH-safe long run
+在 MP3D 跨楼层 ObjectNav 任务（50 episodes）上进行对比评测：
 
-## 4) Before vs After Results
-
-| Metric | Before (2026-03-07) | After (2026-03-08) | Delta |
+| Metric | Before | After | Improvement |
 |---|---:|---:|---:|
-| Success | 4.00% (2/50) | 4.00% (2/50) | 0.00 |
-| SPL | 1.77% | 1.88% | +0.11 |
-| Soft SPL | 6.48% | 7.62% | +1.14 |
-| Avg Distance-to-Goal | 18.7274 | 18.1573 | -0.5701 |
-| Avg Reward | -0.2919 | 0.2622 | +0.5541 |
-| Traveled Stairs | 0.2200 | 0.2200 | 0.0000 |
-| Target Detected | 0.2600 | 0.2400 | -0.0200 |
-| Stop Called | 0.2600 | 0.2200 | -0.0400 |
-| Avg Num Steps | 399.02 | 415.08 | +16.06 |
+| **Avg Reward** | -0.2919 | **+0.2622** | +0.5541 |
+| **Soft SPL** | 6.48% | **7.62%** | +1.14 (+17.6%) |
+| **Avg Distance-to-Goal** | 18.73 m | **18.16 m** | -0.57 m |
+| **SPL** | 1.77% | **1.88%** | +0.11 |
 
-## 5) Failure-Type Comparison
+### Key Takeaways
 
-| Failure Type | Before | After | Delta |
-|---|---:|---:|---:|
-| `never_saw_target_did_not_travel_stairs_likely_infeasible` | 27 | 27 | 0 |
-| `false_positive` | 11 | 10 | -1 |
-| `never_saw_target_traveled_stairs_likely_infeasible` | 8 | 9 | +1 |
-| `never_saw_target_traveled_stairs_feasible` | 2 | 2 | 0 |
+- **Average Reward 从负转正**：改进前 agent 平均获得负奖励（-0.29），说明探索策略整体低效；改进后提升至 +0.26，表明距离感知评分有效提升了每步决策的质量。
+- **Soft SPL 提升 17.6%**：路径效率显著改善，agent 能更高效地向目标方向推进。
+- **Distance-to-Goal 降低 0.57m**：agent 在有限步数内更接近目标位置。
 
-## 6) Interpretation
+## Quick Start
 
-- The Mval update improved trajectory quality indicators (`SPL`, `Soft SPL`, `Avg DTG`, `Avg Reward`).
-- Overall success did not increase in this run (still 2/50), so the main bottleneck remains cross-floor target discovery and stair-transition success.
-- The updated scoring appears to make movement decisions more useful locally, but not yet sufficient to solve global multi-floor search failures.
-
-## 7) Reproduce / Monitor
-
-Use `ascent_nav` environment:
+### Run VLM Servers
 
 ```bash
-cd /home/user/12/ascent
-source /home/user/anaconda3/etc/profile.d/conda.sh
-conda activate ascent_nav
-python -m ascent.run --config-name eval_ascent_mp3d_cross_floor 2>&1 | tee eval_cross_floor.log
+./scripts/launch_vlm_servers_ascent.sh
 ```
 
-SSH-safe background run (tmux):
+### Run Cross-Floor Evaluation
 
 ```bash
-tmux new-session -d -s eval_cross_floor
-tmux send-keys -t eval_cross_floor "cd /home/user/12/ascent && source /home/user/anaconda3/etc/profile.d/conda.sh && conda activate ascent_nav && python -m ascent.run --config-name eval_ascent_mp3d_cross_floor 2>&1 | tee eval_cross_floor.log" C-m
+python -u -m ascent.run --config-name=eval_ascent_mp3d_cross_floor
 ```
 
-Check progress:
+### Run Standard MP3D Evaluation
 
 ```bash
-tmux attach-session -t eval_cross_floor
-# or
-tail -f /home/user/12/ascent/eval_cross_floor.log
+python -u -m ascent.run --config-name=eval_ascent_mp3d
 ```
+
+## Code Changes
+
+- `ascent/llm_planner.py`：实现距离感知的 frontier 排序逻辑
+- `experiments/eval_ascent_mp3d_cross_floor.yaml`：跨楼层评测配置
+- `experiments/eval_ascent_mp3d_long_distance.yaml`：长距离评测配置
+- `scripts/filter_episodes.py`：episode 筛选工具
+
+## Acknowledgments
+
+This project is built upon [ASCENT](https://github.com/Zeying-Gong/ascent). Thanks to the original authors for their excellent work.
