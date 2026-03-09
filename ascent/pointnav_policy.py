@@ -171,9 +171,9 @@ def load_pointnav_policy(file_path: str, original_config=None) -> PointNavResNet
 
             # print(pointnav_policy)
             pointnav_policy.net = PointNavResNetNet(discrete_actions=True, no_fwd_dict=True)
-            state_dict = torch.load(file_path + ".state_dict", map_location="cpu")
+            state_dict = torch.load(file_path + ".state_dict", map_location="cpu", weights_only=False)
         else:
-            ckpt_dict = torch.load(file_path, map_location="cpu")
+            ckpt_dict = torch.load(file_path, map_location="cpu", weights_only=False)
 
             if original_config is not None:
                 config_to_use = original_config
@@ -185,7 +185,7 @@ def load_pointnav_policy(file_path: str, original_config=None) -> PointNavResNet
         return pointnav_policy
 
     else:
-        ckpt_dict = torch.load(file_path, map_location="cpu")
+        ckpt_dict = torch.load(file_path, map_location="cpu", weights_only=False)
         pointnav_policy = PointNavResNetTensorOutputPolicy()
         current_state_dict = pointnav_policy.state_dict()
         # Let old checkpoints work with new code

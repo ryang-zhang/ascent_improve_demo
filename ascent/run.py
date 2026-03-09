@@ -1,4 +1,11 @@
 import os
+import sys
+
+_SYSTEM_GLDISPATCH = "/usr/lib/x86_64-linux-gnu/libGLdispatch.so.0.0.0"
+if os.path.exists(_SYSTEM_GLDISPATCH) and _SYSTEM_GLDISPATCH not in os.environ.get("LD_PRELOAD", ""):
+    os.environ["LD_PRELOAD"] = _SYSTEM_GLDISPATCH + " " + os.environ.get("LD_PRELOAD", "")
+    os.execvpe(sys.executable, [sys.executable, "-u", "-m", "ascent.run"] + sys.argv[1:], os.environ)
+
 import hydra  # noqa
 from habitat import get_config  # noqa
 from habitat.config import read_write

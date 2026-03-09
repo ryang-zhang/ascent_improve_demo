@@ -103,8 +103,15 @@ def send_request(url: str, **kwargs: Any) -> dict:
                 print(e)
                 exit()
             else:
-                print(f"Error: {e}. Retrying in 20-30 seconds...")
-                time.sleep(20 + random.random() * 10)
+                # #region agent log
+                import json as _json
+                try:
+                    with open("/home/user/12/ascent/.cursor/debug-861297.log", "a") as _f:
+                        _f.write(_json.dumps({"sessionId":"861297","hypothesisId":"A,B","location":"server_wrapper_out.py:send_request","message":"send_request failed","data":{"url":url,"attempt":attempt,"error":str(e),"kwargs_keys":list(kwargs.keys())},"timestamp":int(time.time()*1000)}) + "\n")
+                except: pass
+                # #endregion
+                print(f"Error: {e}. Retrying in 2-5 seconds...")
+                time.sleep(2 + random.random() * 3)
 
     return response
 
@@ -157,19 +164,34 @@ def _send_request(url: str, **kwargs: Any) -> dict:
         start_time = time.time()
         while True:
             try:
-                resp = requests.post(url, headers=headers, json=payload, timeout=1)
+                resp = requests.post(url, headers=headers, json=payload, timeout=30)
                 if resp.status_code == 200:
                     result = resp.json()
                     break
                 else:
+                    # #region agent log
+                    import json as _json
+                    try:
+                        _resp_text = resp.text[:500] if resp.text else "empty"
+                        with open("/home/user/12/ascent/.cursor/debug-861297.log", "a") as _f:
+                            _f.write(_json.dumps({"sessionId":"861297","hypothesisId":"A,B","location":"server_wrapper_out.py:_send_request","message":"non-200 response","data":{"url":url,"status_code":resp.status_code,"resp_text":_resp_text},"timestamp":int(time.time()*1000)}) + "\n")
+                    except: pass
+                    # #endregion
                     raise Exception("Request failed")
             except (
                 requests.exceptions.Timeout,
                 requests.exceptions.RequestException,
             ) as e:
+                # #region agent log
+                import json as _json
+                try:
+                    with open("/home/user/12/ascent/.cursor/debug-861297.log", "a") as _f:
+                        _f.write(_json.dumps({"sessionId":"861297","hypothesisId":"C,D","location":"server_wrapper_out.py:_send_request:timeout","message":"request exception in inner loop","data":{"url":url,"error_type":type(e).__name__,"error":str(e),"elapsed":time.time()-start_time},"timestamp":int(time.time()*1000)}) + "\n")
+                except: pass
+                # #endregion
                 print(e)
-                if time.time() - start_time > 20:
-                    raise Exception("Request timed out after 20 seconds")
+                if time.time() - start_time > 60:
+                    raise Exception("Request timed out after 60 seconds")
 
         try:
             # Delete the lock file
@@ -203,12 +225,23 @@ def send_request_vlm(url: str, timeout: int = 20, **kwargs: Any) -> dict:
             break
         except Exception as e:
             if attempt == 2:
-                # print(e)
-                # exit()
                 error_message = f"Error: {e}. All retries failed."
-                # response = {"error": "Request failed after multiple retries"} 
-                raise Exception(error_message)  # 抛出自定义异常
+                # #region agent log
+                import json as _json
+                try:
+                    with open("/home/user/12/ascent/.cursor/debug-861297.log", "a") as _f:
+                        _f.write(_json.dumps({"sessionId":"861297","hypothesisId":"A,E","location":"server_wrapper_out.py:send_request_vlm","message":"vlm request all retries failed","data":{"url":url,"error":str(e)},"timestamp":int(time.time()*1000)}) + "\n")
+                except: pass
+                # #endregion
+                raise Exception(error_message)
             else:
+                # #region agent log
+                import json as _json
+                try:
+                    with open("/home/user/12/ascent/.cursor/debug-861297.log", "a") as _f:
+                        _f.write(_json.dumps({"sessionId":"861297","hypothesisId":"A,E","location":"server_wrapper_out.py:send_request_vlm","message":"vlm request retry","data":{"url":url,"attempt":attempt,"error":str(e)},"timestamp":int(time.time()*1000)}) + "\n")
+                except: pass
+                # #endregion
                 print(f"Error: {e}. Retrying in 5-10 seconds...")
                 time.sleep(5 + random.random() * 5)
 

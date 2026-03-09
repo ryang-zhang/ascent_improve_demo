@@ -243,7 +243,7 @@ def load_place365_model(arch, device):
     """加载 Place365 场景分类模型。"""
     model_file = 'pretrained_weights/%s_places365.pth.tar' % arch
     scene_classify_model = models.__dict__[arch](num_classes=365)
-    checkpoint = torch.load(model_file, map_location=lambda storage, loc: storage)
+    checkpoint = torch.load(model_file, map_location=lambda storage, loc: storage, weights_only=False)
     state_dict = {str.replace(k, 'module.', ''): v for k, v in checkpoint['state_dict'].items()}
     
     load_result = scene_classify_model.load_state_dict(state_dict, strict=False)

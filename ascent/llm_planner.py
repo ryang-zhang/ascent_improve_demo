@@ -83,8 +83,8 @@ class Ascent_LLM_Planner:
                 return frontiers[0], 1.0
             
             # 1. 初始化
-            sorted_pts, sorted_values = self._sort_frontiers_by_value(obstacle_map, value_map, frontiers, env)
             robot_xy = observations_cache[env]["robot_xy"]
+            sorted_pts, sorted_values = self._sort_frontiers_by_value(obstacle_map, value_map, frontiers, robot_xy, env)
             
             best_frontier, best_value = None, None
 
@@ -128,23 +128,40 @@ class Ascent_LLM_Planner:
             print(f"Now the best_frontier is {best_frontier}")
             return best_frontier, best_value
     
-    def _sort_frontiers_by_value(
-        self, obstacle_map, value_map, frontiers: np.ndarray, env: int = 0,
-    ) -> Tuple[np.ndarray, List[float]]:
+    # Mval 公式超参数
+    _MVAL_D_THETA = 3.0   # 距离截断阈值（米），超过此距离则距离项为 0
+    _MVAL_EPSILON = 0.01  # 防止 Mss=0 时分值为 0 的小常数
 
-        # 我们可以将它们打包成 (point, value) 对进行过滤        
-        # 步骤1: 获取初始排序后的前沿点和值
+    def _sort_frontiers_by_value(
+        self, obstacle_map, value_map, frontiers: np.ndarray,
+        robot_xy: np.ndarray, env: int = 0,
+    ) -> Tuple[np.ndarray, List[float]]:
+        """按 Mval 公式对 frontier 排序。
+
+        Mval(Fi) = Mss(Fi) * (1 + exp(-di) * [di <= d_theta]) + epsilon
+
+        其中 di 是机器人到 frontier Fi 的欧氏距离（实时计算），
+        d_theta 是距离截断阈值，超过该距离距离加成项归零。
+        """
+        # 步骤1: 获取原始语义相似度分值（未排序，保持与 frontiers 顺序一致）
         raw_sorted_pts, raw_sorted_values = value_map[env].sort_waypoints(frontiers, 0.5)
-        # 步骤2: 过滤掉禁用的前沿点，并同时保留对应的值
+
+        # 步骤2: 过滤禁用前沿，同时应用 Mval 公式
         filtered_pairs = []
-        for pt, val in zip(raw_sorted_pts, raw_sorted_values):
-            if tuple(pt) not in obstacle_map[env]._disabled_frontiers:
-                filtered_pairs.append((pt, val))
-        # 步骤3: 解包过滤后的结果
-        if not filtered_pairs: # 如果所有前沿都被禁用，返回空列表
+        for pt, mss in zip(raw_sorted_pts, raw_sorted_values):
+            if tuple(pt) in obstacle_map[env]._disabled_frontiers:
+                continue
+            di = np.linalg.norm(pt - robot_xy)
+            distance_bonus = np.exp(-di) if di <= self._MVAL_D_THETA else 0.0
+            mval = mss * (1.0 + distance_bonus) + self._MVAL_EPSILON
+            filtered_pairs.append((pt, mval))
+
+        # 步骤3: 按 Mval 降序排序
+        if not filtered_pairs:
             return np.array([]), []
+        filtered_pairs.sort(key=lambda x: x[1], reverse=True)
         sorted_frontiers = np.array([pair[0] for pair in filtered_pairs])
-        sorted_values = [pair[1] for pair in filtered_pairs]        
+        sorted_values = [pair[1] for pair in filtered_pairs]
         return sorted_frontiers, sorted_values
     
     @staticmethod

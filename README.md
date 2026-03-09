@@ -1,235 +1,90 @@
-<p align="center">
-  <img src="docs/teaser_font_larger_01.png" width="700">
-  <h1 align="center">Stairway to Success: An Online Floor-Aware Zero-Shot Object-Goal Navigation Framework via LLM-Driven Coarse-to-Fine Exploration</h1>
-  <h3 align="center">
-    <a href="https://zeying-gong.github.io/">Zeying Gong</a><sup>1</sup>, 
-    <a href="https://rongli.tech/">Rong Li</a><sup>1</sup>, 
-    <a href="https://hutslib.github.io/">Tianshuai Hu</a><sup>2</sup>, 
-    <a href="https://openreview.net/profile?id=~Ronghe_Qiu2">Ronghe Qiu</a><sup>1</sup>, 
-    <a href="https://ldkong.com/">Lingdong Kong</a><sup>3</sup>,
-    <br>
-    <a href="https://scholar.google.com/citations?user=nzfJ4mEAAAAJ&hl">Lingfeng Zhang</a><sup>4</sup>, 
-    <a href="https://guoyangzhao.github.io/">Guoyang Zhao</a><sup>1</sup>, 
-    <a href="https://www.linkedin.com/in/ding-justin-08a421266">Yiyi Ding</a><sup>1</sup>, 
-    <a href="https://junweiliang.me/">Junwei Liang</a><sup>1,2,&#9993</sup>
-    <br>
-    <p>
-        <h45>
-            <sup>1</sup> The Hong Kong University of Science and Technology (Guangzhou). &nbsp;&nbsp;
-            <br>
-            <sup>2</sup> The Hong Kong University of Science and Technology &nbsp;&nbsp;
-            <br>
-            <sup>3</sup> National University of Singapore &nbsp;&nbsp;
-            <br>
-            <sup>4</sup> Tsinghua University &nbsp;&nbsp;
-            <br>
-        </h45>
-    </p>
+# Mval Frontier Scoring Update: Cross-Floor Evaluation Report
 
-  </h3>
+This document summarizes the cross-floor evaluation before and after updating the frontier scoring rule to include a distance-aware term.
 
-  <!-- Badges -->
-  <p align="center">
-    <a href="https://zeying-gong.github.io/projects/ascent/">
-      <img src="https://img.shields.io/badge/Web-Ascent-deepgreen.svg" alt="Project Web Badge">
-    </a>
-    <a href="https://www.youtube.com/watch?v=1uqS-aMk-tE">
-      <img src="https://img.shields.io/badge/Video-Youtube-red.svg" alt="YouTube Video Badge">
-    </a>
-    <a href="https://arxiv.org/abs/2505.23019">
-      <img src="https://img.shields.io/badge/cs.ai-arxiv:2505.23019-42ba94.svg" alt="arXiv Paper Badge">
-    </a>
-    <a href="https://github.com/facebookresearch/habitat-sim">
-      <img src="https://img.shields.io/static/v1?label=supports&message=Habitat%20Sim&color=informational" alt="Habitat Sim Badge">
-    </a>
-    <a href="https://github.com/Zeying-Gong/habitat-lab/blob/main/LICENSE">
-      <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT License Badge">
-    </a>
-  </p>
-</p>
+## 1) Change Summary
 
-## 📋 TODO List
+- **Goal**: Update frontier scoring to prefer semantically promising frontiers while still favoring near-term reachable ones.
+- **New formula**:
 
-- ✅ Complete Installation and Usage documentation
-- ✅ Add datasets download documentation
-- ✅ Release the main algorithm of **ASCENT**
-- ❌ Release the code of real-world deployment
+  \[
+  M_{val}(F_i) = M_{ss}(F_i)\cdot\left(1 + \exp(-d_i)\cdot\mathbf{1}[d_i \le d_{\theta}]\right) + \epsilon
+  \]
 
-## :hammer_and_wrench: Environment Setup
+- **Hyperparameters**:
+  - \(d_{\theta} = 3.0\) meters (distance bonus is zero when \(d_i > d_{\theta}\))
+  - \(\epsilon = 0.01\)
+- **Distance definition**:
+  - \(d_i\) is the real-time Euclidean distance from robot current position to frontier \(F_i\), recomputed every step for every frontier.
 
-### 1. **Preparing Conda Environment**
+## 2) Code Locations
 
-Assuming you have [conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/) installed, let's prepare a conda env:
-```
-conda_env_name=ascent_nav
-conda create -n $conda_env_name python=3.9 cmake=3.14.0
-conda activate $conda_env_name
-```
+- Updated frontier ranking logic: `ascent/llm_planner.py`
+  - `_get_best_frontier_with_llm(...)`: pass `robot_xy` into frontier sorting
+  - `_sort_frontiers_by_value(...)`: apply Mval formula and sort by Mval descending
+- Added Mval constants in planner:
+  - `_MVAL_D_THETA = 3.0`
+  - `_MVAL_EPSILON = 0.01`
 
-Install proper version of torch:
-```
-pip install torch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 --index-url https://download.pytorch.org/whl/cu118
-```
+## 3) Evaluation Setup
 
-### 2. **Install Habitat-Sim**
+- Task: MP3D cross-floor ObjectNav evaluation
+- Config: `experiments/eval_ascent_mp3d_cross_floor.yaml`
+- Episodes: 50
+- VLM server ports: `13181-13186`
+- Runtime mode: tmux detached session for SSH-safe long run
 
-```
-conda install habitat-sim=0.3.1 withbullet headless -c conda-forge -c aihabitat
-```
+## 4) Before vs After Results
 
-> If you encounter network problems, you can manually download the Conda package from [this link](https://anaconda.org/aihabitat/habitat-sim/0.3.1/download/linux-64/habitat-sim-0.3.1-py3.9_headless_bullet_linux_3d6d67d6deae4ab2472cc84df7a3cef1503f606d.tar.bz2) to download the conda bag, and install it via: `conda install --use-local /path/to/xxx.tar.bz2` to download.
+| Metric | Before (2026-03-07) | After (2026-03-08) | Delta |
+|---|---:|---:|---:|
+| Success | 4.00% (2/50) | 4.00% (2/50) | 0.00 |
+| SPL | 1.77% | 1.88% | +0.11 |
+| Soft SPL | 6.48% | 7.62% | +1.14 |
+| Avg Distance-to-Goal | 18.7274 | 18.1573 | -0.5701 |
+| Avg Reward | -0.2919 | 0.2622 | +0.5541 |
+| Traveled Stairs | 0.2200 | 0.2200 | 0.0000 |
+| Target Detected | 0.2600 | 0.2400 | -0.0200 |
+| Stop Called | 0.2600 | 0.2200 | -0.0400 |
+| Avg Num Steps | 399.02 | 415.08 | +16.06 |
 
-In theory, versions >= 0.2.4 are all compatible, but it is better to keep the same version between habitat-lab and habitat-sim. Here we use 0.3.1 version.
+## 5) Failure-Type Comparison
 
-### 3. **Clone Repository**
-```
-git clone --recurse-submodules https://github.com/Zeying-Gong/ascent.git
-```
+| Failure Type | Before | After | Delta |
+|---|---:|---:|---:|
+| `never_saw_target_did_not_travel_stairs_likely_infeasible` | 27 | 27 | 0 |
+| `false_positive` | 11 | 10 | -1 |
+| `never_saw_target_traveled_stairs_likely_infeasible` | 8 | 9 | +1 |
+| `never_saw_target_traveled_stairs_feasible` | 2 | 2 | 0 |
 
-### 4. **Install Habitat-Lab**
-```
-cd third_party/habitat-lab
-git checkout v0.3.1
-pip install -e habitat-lab
-pip install -e habitat-baselines
-cd ../..
-```
+## 6) Interpretation
 
-### 4. **GroundingDINO**
+- The Mval update improved trajectory quality indicators (`SPL`, `Soft SPL`, `Avg DTG`, `Avg Reward`).
+- Overall success did not increase in this run (still 2/50), so the main bottleneck remains cross-floor target discovery and stair-transition success.
+- The updated scoring appears to make movement decisions more useful locally, but not yet sufficient to solve global multi-floor search failures.
 
-Following [GroundingDINO](https://github.com/IDEA-Research/GroundingDINO)'s instruction:
+## 7) Reproduce / Monitor
 
-```
-export CUDA_HOME=/path/to/cuda-11.8 # replace with actual path
+Use `ascent_nav` environment:
 
-cd third_party/GroundingDINO
-pip install -e . --no-build-isolation --no-dependencies
-cd ../..
-```
-
-### 5. **MobileSAM**
-
-Following [MobileSAM](https://github.com/ChaoningZhang/MobileSAM)'s instruction:
-
-```
-cd third_party/MobileSAM
-pip install -e .
-cd ../..
-```
-
-### 6. **Others**
-```
-pip install -r requirements.txt
-```
-
-The following dependencies require special build flags:
 ```bash
-pip install transformers==4.37.0
+cd /home/user/12/ascent
+source /home/user/anaconda3/etc/profile.d/conda.sh
+conda activate ascent_nav
+python -m ascent.run --config-name eval_ascent_mp3d_cross_floor 2>&1 | tee eval_cross_floor.log
 ```
 
+SSH-safe background run (tmux):
 
-## :weight_lifting: Downloading Model Weights
-
-Download the required model weights and save them to the `pretrained_weights/` directory:
-
-| Model | Filename | Download Link |
-|-------|----------|---------------|
-| Places365 | `resnet50_places365.pth.tar` | [Download](http://places2.csail.mit.edu/models_places365/resnet50_places365.pth.tar) |
-| MobileSAM | `mobile_sam.pt` | [GitHub](https://github.com/ChaoningZhang/MobileSAM) |
-| GroundingDINO | `groundingdino_swint_ogc.pth` | [GitHub](https://github.com/IDEA-Research/GroundingDINO) |
-| D-FINE | `dfine_x_obj2coco.pth` | [GitHub](https://github.com/Peterande/storage/releases/download/dfinev1.0/dfine_x_obj2coco.pth) |
-| RedNet | `rednet_semmap_mp3d_40.pth` | [Google Drive](https://drive.google.com/file/d/1U0dS44DIPZ22nTjw0RfO431zV-lMPcvv) |
-| RAM++ | `ram_plus_swin_large_14m.pth` | [HuggingFace](https://huggingface.co/xinyu1205/recognize-anything-plus-model/blob/main/ram_plus_swin_large_14m.pth) |
-
-### Qwen2.5-7B Weights
-Through [HuggingFace](https://huggingface.co/Qwen/Qwen2.5-7B-Instruct) or [ModelScope](https://modelscope.cn/models/Qwen/Qwen2.5-7B-Instruct) download the checkpoints, and put them in `pretrained_weights/`
-
-### PointNav Weights
-
-The PointNav weight is directly from [VLFM](https://github.com/bdaiinstitute/vlfm), located in `third_party/vlfm/data/pointnav_weights.pth`. 
-
-- Locate Datasets: The file structure should look like this:
-```
-pretrained_weights
-├── mobile_sam.pt
-├── groundingdino_swint_ogc.pth
-├── dfine_x_obj2coco.pth
-├── ram_plus_swin_large_14m.pth
-├── rednet_semmap_mp3d_40.pth
-├── resnet50_places365.pth.tar
-└── Qwen2.5-7b
-    ├── model-00001-of-00005.safetensors
-    └── ...
+```bash
+tmux new-session -d -s eval_cross_floor
+tmux send-keys -t eval_cross_floor "cd /home/user/12/ascent && source /home/user/anaconda3/etc/profile.d/conda.sh && conda activate ascent_nav && python -m ascent.run --config-name eval_ascent_mp3d_cross_floor 2>&1 | tee eval_cross_floor.log" C-m
 ```
 
-## 📚 Datasets Setup
+Check progress:
 
-- Download Scene & Episode Datasets: Following the instructions for **HM3D** and **MP3D** in Habitat-lab's [Datasets.md](https://github.com/facebookresearch/habitat-lab/blob/main/DATASETS.md).
-
-- Locate Datasets: The file structure should look like this:
+```bash
+tmux attach-session -t eval_cross_floor
+# or
+tail -f /home/user/12/ascent/eval_cross_floor.log
 ```
-data
-└── datasets
-    ├── objectnav
-    │   ├── hm3d
-    │   │   └── v1
-    │   │        └── val
-    │   │             ├── content
-    │   │             └── val.json.gz
-    │   └── mp3d
-    │       └── v1
-    │            └── val
-    │                 ├── content
-    │                 └── val.json.gz
-    └── scene_datasets
-        ├── hm3d
-        │   └── ...
-        └── mp3d
-            └── ...
-```
-
-## 🚀 Evaluation
-
-Run VLM servers
-```
-./scripts/launch_vlm_servers_ascent.sh
-```
-
-It will open a tmux windows in a separate terminal.
-
-Open another terminal, run evaluation on HM3D dataset:
-``` 
-python -u -m ascent.run --config-name=eval_ascent_hm3d.yaml
-```
-
-Or run evaluation on MP3D dataset:
-``` 
-python -u -m ascent.run --config-name=eval_ascent_mp3d.yaml
-```
-
-## ⚠️ Notes
-
-- This is a **refactored version** of the original codebase with improved code organization and structure.
-- Due to the inherent randomness in **object detection** (GroundingDINO, D-FINE) and **LLM inference** (Qwen2.5), evaluation results may vary slightly from the paper's reported metrics.
-
-## :black_nib: Citation
-
-If you use **ASCENT** in your research, please use the following BibTeX entry.
-
-```
-@article{gong2025stairway,
-  title={Stairway to Success: Zero-Shot Floor-Aware Object-Goal Navigation via LLM-Driven Coarse-to-Fine Exploration},
-  author={Gong, Zeying and Li, Rong and Hu, Tianshuai and Qiu, Ronghe and Kong, Lingdong and Zhang, Lingfeng and Ding, Yiyi and Zhang, Leying and Liang, Junwei},
-  journal={arXiv preprint arXiv:2505.23019},
-  year={2025}
-}
-```
-
-## 	:pray: Acknowledgments
-
-We would like to thank the following repositories for their contributions:
-- [ApexNav](https://github.com/Robotics-STAR-Lab/ApexNav)
-- [VLFM](https://github.com/bdaiinstitute/vlfm)
-- [L3MVN](https://github.com/ybgdgh/L3MVN)
-- [SeeGround](https://github.com/iris0329/SeeGround)
-- [Habitat-Lab](https://github.com/facebookresearch/habitat-lab)

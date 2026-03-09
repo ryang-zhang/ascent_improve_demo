@@ -28,7 +28,7 @@ def set_seed(seed: int):
 class QWen2_5:
     """QWen2_5 Image-Text Matching model using transformers."""
 
-    def __init__(self, model_name: str = "pretrained_weights/Qwen2.5-7b", device: str = None, seed: int = 2025) -> None: 
+    def __init__(self, model_name: str = "pretrained_weights/Qwen2.5-7B", device: str = None, seed: int = 2025) -> None: 
         """
         初始化QWen2.5模型。
 

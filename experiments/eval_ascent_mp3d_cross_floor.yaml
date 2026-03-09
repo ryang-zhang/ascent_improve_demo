@@ -36,33 +36,19 @@ habitat_baselines:
   load_resume_state_config: False
   verbose: false
   torch_gpu_id: 0
-  tensorboard_dir: "debug/tb_mp3d_debug"
-  video_dir: "debug/video_mp3d_debug"
+  tensorboard_dir: "debug/tb_mp3d_cross_floor"
+  video_dir: "debug/video_mp3d_cross_floor"
   test_episode_count: -1
   checkpoint_folder: "debug/"
   trainer_name: "ascent"
   num_updates: 270000
   log_interval: 10
   num_checkpoints: 100
-  # Force PyTorch to be single threaded as
-  # this improves performance considerably
   force_torch_single_threaded: True
   eval_keys_to_include_in_name: ["success","spl","num_steps"]
   eval:
-    split: "val"
+    split: "val_cross_floor"
     video_option: []
-    # extra_sim_sensors:
-    #   third_rgb_sensor:
-    #     height: 480
-    #     width: 640
-    #     position:
-    #     - 0.0
-    #     - 1.8
-    #     - 0.5 # 0.0 - is back
-    #     orientation:
-    #     - -0.78 # -1.57 # 0.0
-    #     - 0.0 # right -1.57
-    #     - 0.0 #lay -1.57 
   rl:
     policy:
       main_agent:
@@ -73,7 +59,6 @@ habitat_baselines:
         obstacle_map_area_threshold: 1.5 
         pointnav_policy_path: "third_party/vlfm/data/pointnav_weights.pth"
     ppo:
-      # ppo params
       clip_param: 0.2
       ppo_epoch: 2
       num_mini_batch: 2
@@ -95,20 +80,13 @@ habitat_baselines:
       hidden_size: 512
     ddppo:
       sync_frac: 0.6
-      # The PyTorch distributed backend to use
       distrib_backend: NCCL
-      # Visual encoder backbone
       pretrained_weights: data/ddppo-models/gibson-2plus-resnet50.pth
-      # Initialize with pretrained weights
       pretrained: False
-      # Initialize just the visual encoder backbone with pretrained weights
       pretrained_encoder: False
-      # Whether or not the visual encoder backbone will be trained.
       train_encoder: True
-      # Whether or not to reset the critic linear layer
       reset_critic: False
 
-      # Model parameters
       backbone: resnet18
       rnn_type: LSTM
       num_recurrent_layers: 2
